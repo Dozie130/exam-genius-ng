@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import ClickableText from './ClickableText';
-import { timer } from 'lucide-react';
+import { Timer } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -82,7 +81,7 @@ const QuestionCard = ({
             Question {currentQuestion} of {totalQuestions}
           </span>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 text-gray-600">⏰</div>
+            <Timer className="w-4 h-4 text-gray-600" />
             <span className={`text-sm font-medium ${getTimerColor()}`}>
               {timeRemaining}s
             </span>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +25,6 @@ const WordHelper = ({ word, onClose }: WordHelperProps) => {
         'literature': 'Written works like poems, stories, and plays that are considered to have artistic value.',
         'molecule': 'The smallest unit of a substance that still has all the properties of that substance.',
         'constitution': 'The basic laws and principles that govern a country or organization.',
-        'photosynthesis': 'The process plants use to make food from sunlight, water, and carbon dioxide.',
       };
 
       // Simulate API delay
