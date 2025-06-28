@@ -19,8 +19,8 @@ const ExamPage = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [examStartTime] = useState(Date.now());
+  const [questionStartTimes, setQuestionStartTimes] = useState<Record<number, number>>({});
 
   const examData = getExamById(examType, subject, year);
 
@@ -31,26 +31,17 @@ const ExamPage = () => {
       return;
     }
 
-    // Set timer
-    setTimeRemaining(examData.duration * 60);
+    // Record start time for first question
+    setQuestionStartTimes({ 0: Date.now() });
   }, [examData, navigate]);
 
+  // Record start time when question changes
   useEffect(() => {
-    if (timeRemaining === null || timeRemaining <= 0 || showResults) return;
-
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev && prev <= 1) {
-          setShowResults(true);
-          toast.info('Time up! Exam submitted automatically.');
-          return 0;
-        }
-        return prev ? prev - 1 : 0;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeRemaining, showResults]);
+    setQuestionStartTimes(prev => ({
+      ...prev,
+      [currentQuestionIndex]: Date.now()
+    }));
+  }, [currentQuestionIndex]);
 
   if (!examData) {
     return (
@@ -83,6 +74,14 @@ const ExamPage = () => {
     }
   };
 
+  const handleTimeUp = () => {
+    // Auto-advance to next question when time is up
+    toast.info('Time up for this question!');
+    setTimeout(() => {
+      handleNext();
+    }, 2000);
+  };
+
   const calculateResults = () => {
     const correctAnswers = examData.questions.filter(
       question => answers[question.id] === question.correctOption
@@ -101,7 +100,7 @@ const ExamPage = () => {
     setCurrentQuestionIndex(0);
     setAnswers({});
     setShowResults(false);
-    setTimeRemaining(examData.duration * 60);
+    setQuestionStartTimes({ 0: Date.now() });
     toast.success('Exam restarted!');
   };
 
@@ -138,7 +137,7 @@ const ExamPage = () => {
         onNext={handleNext}
         onPrevious={handlePrevious}
         showAnswer={false}
-        timeRemaining={timeRemaining || undefined}
+        onTimeUp={handleTimeUp}
       />
     </Layout>
   );

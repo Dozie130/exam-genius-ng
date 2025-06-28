@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import ClickableText from './ClickableText';
+import { timer } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -21,7 +23,7 @@ interface QuestionCardProps {
   onNext: () => void;
   onPrevious: () => void;
   showAnswer: boolean;
-  timeRemaining?: number;
+  onTimeUp?: () => void;
 }
 
 const QuestionCard = ({
@@ -33,10 +35,43 @@ const QuestionCard = ({
   onNext,
   onPrevious,
   showAnswer,
-  timeRemaining
+  onTimeUp
 }: QuestionCardProps) => {
+  const [timeRemaining, setTimeRemaining] = useState(60); // 60 seconds per question
   const options = ['A', 'B', 'C', 'D'];
   const progress = (currentQuestion / totalQuestions) * 100;
+
+  // Reset timer when question changes
+  useEffect(() => {
+    setTimeRemaining(60);
+  }, [question.id]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (showAnswer || timeRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          if (onTimeUp) onTimeUp();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeRemaining, showAnswer, onTimeUp]);
+
+  const getTimerColor = () => {
+    if (timeRemaining > 40) return 'text-green-600';
+    if (timeRemaining > 20) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getTimerProgress = () => {
+    return (timeRemaining / 60) * 100;
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -46,20 +81,31 @@ const QuestionCard = ({
           <span className="text-sm font-medium text-gray-700">
             Question {currentQuestion} of {totalQuestions}
           </span>
-          {timeRemaining && (
-            <span className="text-sm font-medium text-blue-600">
-              {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 text-gray-600">⏰</div>
+            <span className={`text-sm font-medium ${getTimerColor()}`}>
+              {timeRemaining}s
             </span>
-          )}
+          </div>
         </div>
-        <Progress value={progress} className="h-2" />
+        
+        <div className="space-y-2">
+          <Progress value={progress} className="h-2" />
+          <Progress 
+            value={getTimerProgress()} 
+            className={`h-1 ${timeRemaining <= 20 ? 'bg-red-100' : 'bg-gray-100'}`}
+          />
+        </div>
       </div>
 
       {/* Question Card */}
       <Card className="shadow-lg border-0">
         <CardHeader>
           <CardTitle className="text-lg leading-relaxed text-gray-800">
-            {question.question}
+            <ClickableText 
+              text={question.question}
+              className="leading-relaxed"
+            />
           </CardTitle>
         </CardHeader>
         
@@ -74,7 +120,7 @@ const QuestionCard = ({
               <button
                 key={optionLetter}
                 onClick={() => onAnswerSelect(optionLetter)}
-                disabled={showAnswer}
+                disabled={showAnswer || timeRemaining === 0}
                 className={`w-full p-4 text-left rounded-lg border-2 transition-all duration-200 ${
                   isCorrect
                     ? 'border-green-500 bg-green-50 text-green-800'
@@ -82,6 +128,8 @@ const QuestionCard = ({
                     ? 'border-red-500 bg-red-50 text-red-800'
                     : isSelected
                     ? 'border-blue-500 bg-blue-50 text-blue-800'
+                    : timeRemaining === 0
+                    ? 'border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
@@ -97,7 +145,10 @@ const QuestionCard = ({
                   }`}>
                     {optionLetter}
                   </span>
-                  <span className="flex-1">{option}</span>
+                  <ClickableText 
+                    text={option}
+                    className="flex-1"
+                  />
                 </div>
               </button>
             );
@@ -106,7 +157,16 @@ const QuestionCard = ({
           {showAnswer && question.explanation && (
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2">Explanation:</h4>
-              <p className="text-blue-800 text-sm leading-relaxed">{question.explanation}</p>
+              <ClickableText 
+                text={question.explanation}
+                className="text-blue-800 text-sm leading-relaxed"
+              />
+            </div>
+          )}
+
+          {timeRemaining === 0 && !showAnswer && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-center">
+              <p className="text-red-800 text-sm font-medium">Time's up! Please move to the next question.</p>
             </div>
           )}
         </CardContent>
@@ -124,7 +184,7 @@ const QuestionCard = ({
         </Button>
         
         <div className="flex space-x-3">
-          {!showAnswer && selectedAnswer && (
+          {!showAnswer && (selectedAnswer || timeRemaining === 0) && (
             <Button
               onClick={onNext}
               className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white px-6 py-2"
