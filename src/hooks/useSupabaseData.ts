@@ -29,7 +29,7 @@ export interface Question {
 export interface ExamAttempt {
   id: string;
   subject: string;
-  exam_type: string;
+  exam_type: 'WAEC' | 'JAMB' | 'NECO';
   questions_answered: number;
   correct_answers: number;
   score_percent: number;
@@ -129,7 +129,12 @@ export const useSupabaseData = () => {
         .from('exam_attempts')
         .insert({
           user_id: user.id,
-          ...attempt
+          subject: attempt.subject,
+          exam_type: attempt.exam_type,
+          questions_answered: attempt.questions_answered,
+          correct_answers: attempt.correct_answers,
+          score_percent: attempt.score_percent,
+          time_taken_minutes: attempt.time_taken_minutes
         })
         .select()
         .single();
