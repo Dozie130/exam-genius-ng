@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -61,7 +60,19 @@ const ExamPage = () => {
           return;
         }
 
-        setQuestions(data);
+        // Transform the data to ensure options is properly typed
+        const transformedQuestions: Question[] = data.map(q => ({
+          id: q.id,
+          subject: q.subject,
+          exam_type: q.exam_type,
+          year: q.year,
+          question_text: q.question_text,
+          options: q.options as Record<string, string>,
+          correct_option: q.correct_option,
+          explanation: q.explanation || ''
+        }));
+
+        setQuestions(transformedQuestions);
         setQuestionStartTimes({ 0: Date.now() });
       } catch (error) {
         console.error('Error fetching questions:', error);
