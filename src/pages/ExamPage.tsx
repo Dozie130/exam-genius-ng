@@ -4,50 +4,103 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import QuestionCard from '@/components/QuestionCard';
 import ResultsCard from '@/components/ResultsCard';
-import { useExamData, Question } from '@/hooks/useExamData';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+interface Question {
+  id: string;
+  subject: string;
+  exam_type: 'WAEC' | 'JAMB' | 'NECO';
+  year: number;
+  question_text: string;
+  options: Record<string, string>;
+  correct_option: string;
+  explanation: string;
+}
 
 const ExamPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { getExamById } = useExamData();
+  const { user, saveExamAttempt } = useSupabaseData();
   
   const examType = searchParams.get('type') as 'WAEC' | 'JAMB' | 'NECO';
   const subject = searchParams.get('subject') || '';
   const year = parseInt(searchParams.get('year') || '2023');
   
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
   const [examStartTime] = useState(Date.now());
   const [questionStartTimes, setQuestionStartTimes] = useState<Record<number, number>>({});
 
-  const examData = getExamById(examType, subject, year);
-
   useEffect(() => {
-    if (!examData) {
-      toast.error('Exam not found');
-      navigate('/');
-      return;
-    }
+    const fetchQuestions = async () => {
+      if (!examType || !subject) {
+        toast.error('Invalid exam parameters');
+        navigate('/');
+        return;
+      }
 
-    // Record start time for first question
-    setQuestionStartTimes({ 0: Date.now() });
-  }, [examData, navigate]);
+      try {
+        const { data, error } = await supabase
+          .from('questions')
+          .select('*')
+          .eq('exam_type', examType)
+          .eq('subject', subject)
+          .eq('year', year)
+          .limit(40);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          toast.error('No questions found for this exam');
+          navigate('/');
+          return;
+        }
+
+        setQuestions(data);
+        setQuestionStartTimes({ 0: Date.now() });
+      } catch (error) {
+        console.error('Error fetching questions:', error);
+        toast.error('Failed to load exam questions');
+        navigate('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, [examType, subject, year, navigate]);
 
   // Record start time when question changes
   useEffect(() => {
-    setQuestionStartTimes(prev => ({
-      ...prev,
-      [currentQuestionIndex]: Date.now()
-    }));
-  }, [currentQuestionIndex]);
+    if (questions.length > 0) {
+      setQuestionStartTimes(prev => ({
+        ...prev,
+        [currentQuestionIndex]: Date.now()
+      }));
+    }
+  }, [currentQuestionIndex, questions.length]);
 
-  if (!examData) {
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-lg text-gray-600">Loading exam questions...</span>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (questions.length === 0) {
     return (
       <Layout>
         <div className="text-center py-12">
-          <p className="text-lg text-gray-600">Exam not found</p>
+          <p className="text-lg text-gray-600">No questions available for this exam</p>
         </div>
       </Layout>
     );
@@ -56,12 +109,12 @@ const ExamPage = () => {
   const handleAnswerSelect = (answer: string) => {
     setAnswers(prev => ({
       ...prev,
-      [examData.questions[currentQuestionIndex].id]: answer
+      [questions[currentQuestionIndex].id]: answer
     }));
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < examData.questions.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
       setShowResults(true);
@@ -75,7 +128,6 @@ const ExamPage = () => {
   };
 
   const handleTimeUp = () => {
-    // Auto-advance to next question when time is up
     toast.info('Time up for this question!');
     setTimeout(() => {
       handleNext();
@@ -83,16 +135,17 @@ const ExamPage = () => {
   };
 
   const calculateResults = () => {
-    const correctAnswers = examData.questions.filter(
-      question => answers[question.id] === question.correctOption
+    const correctAnswers = questions.filter(
+      question => answers[question.id] === question.correct_option
     ).length;
     
-    const timeTaken = Math.floor((Date.now() - examStartTime) / 1000);
+    const timeTakenMinutes = Math.floor((Date.now() - examStartTime) / (1000 * 60));
+    const scorePercent = Math.round((correctAnswers / questions.length) * 100);
     
     return {
       correctAnswers,
-      timeTaken,
-      score: Math.round((correctAnswers / examData.questions.length) * 100)
+      timeTakenMinutes,
+      scorePercent
     };
   };
 
@@ -110,13 +163,26 @@ const ExamPage = () => {
 
   if (showResults) {
     const results = calculateResults();
+    
+    // Save exam attempt to database
+    if (user) {
+      saveExamAttempt.mutate({
+        subject,
+        exam_type: examType,
+        questions_answered: questions.length,
+        correct_answers: results.correctAnswers,
+        score_percent: results.scorePercent,
+        time_taken_minutes: results.timeTakenMinutes
+      });
+    }
+
     return (
       <Layout title="Exam Results">
         <ResultsCard
-          score={results.score}
-          totalQuestions={examData.questions.length}
+          score={results.scorePercent}
+          totalQuestions={questions.length}
           correctAnswers={results.correctAnswers}
-          timeTaken={results.timeTaken}
+          timeTaken={results.timeTakenMinutes * 60} // Convert back to seconds for display
           examType={examType}
           subject={subject}
           onRetake={handleRetake}
@@ -126,13 +192,23 @@ const ExamPage = () => {
     );
   }
 
+  // Convert question format for QuestionCard
+  const currentQuestion = questions[currentQuestionIndex];
+  const formattedQuestion = {
+    id: currentQuestion.id,
+    question: currentQuestion.question_text,
+    options: Object.values(currentQuestion.options),
+    correctOption: currentQuestion.correct_option,
+    explanation: currentQuestion.explanation
+  };
+
   return (
     <Layout title={`${examType} ${subject} ${year}`}>
       <QuestionCard
-        question={examData.questions[currentQuestionIndex]}
+        question={formattedQuestion}
         currentQuestion={currentQuestionIndex + 1}
-        totalQuestions={examData.questions.length}
-        selectedAnswer={answers[examData.questions[currentQuestionIndex].id] || null}
+        totalQuestions={questions.length}
+        selectedAnswer={answers[currentQuestion.id] || null}
         onAnswerSelect={handleAnswerSelect}
         onNext={handleNext}
         onPrevious={handlePrevious}
