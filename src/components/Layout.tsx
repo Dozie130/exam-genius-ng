@@ -1,6 +1,15 @@
 
 import React from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, User, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,6 +17,9 @@ interface LayoutProps {
 }
 
 const Layout = ({ children, title }: LayoutProps) => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <header className="bg-white shadow-sm border-b border-blue-100">
@@ -22,9 +34,34 @@ const Layout = ({ children, title }: LayoutProps) => {
                 <p className="text-sm text-gray-600">Excel in Your Exams</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">Welcome!</p>
-              <p className="text-xs text-gray-600">Ready to practice?</p>
+            
+            <div className="flex items-center space-x-4">
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                      <User className="w-4 h-4" />
+                      <span className="hidden sm:inline">Account</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled>
+                      {user.email}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={signOut}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button 
+                  onClick={() => navigate('/auth')}
+                  className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
+                >
+                  Sign In
+                </Button>
+              )}
             </div>
           </div>
         </div>

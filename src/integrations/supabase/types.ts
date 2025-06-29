@@ -9,7 +9,258 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bookmarked_questions: {
+        Row: {
+          created_at: string | null
+          id: string
+          question_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          question_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          question_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarked_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookmarked_questions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_attempts: {
+        Row: {
+          completed_at: string | null
+          correct_answers: number
+          exam_type: Database["public"]["Enums"]["exam_type"]
+          id: string
+          questions_answered: number
+          score_percent: number
+          subject: string
+          time_taken_minutes: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          correct_answers: number
+          exam_type: Database["public"]["Enums"]["exam_type"]
+          id?: string
+          questions_answered: number
+          score_percent: number
+          subject: string
+          time_taken_minutes: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          correct_answers?: number
+          exam_type?: Database["public"]["Enums"]["exam_type"]
+          id?: string
+          questions_answered?: number
+          score_percent?: number
+          subject?: string
+          time_taken_minutes?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount_paid: number
+          created_at: string | null
+          id: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_reference: string | null
+          status: Database["public"]["Enums"]["payment_status"] | null
+          user_id: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string | null
+          id?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_reference?: string | null
+          status?: Database["public"]["Enums"]["payment_status"] | null
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string | null
+          id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_reference?: string | null
+          status?: Database["public"]["Enums"]["payment_status"] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          full_name: string
+          id: string
+          is_premium: boolean | null
+          last_login: string | null
+          phone: string | null
+          registered_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          full_name: string
+          id: string
+          is_premium?: boolean | null
+          last_login?: string | null
+          phone?: string | null
+          registered_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string
+          id?: string
+          is_premium?: boolean | null
+          last_login?: string | null
+          phone?: string | null
+          registered_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          correct_option: string
+          created_at: string | null
+          exam_type: Database["public"]["Enums"]["exam_type"]
+          explanation: string | null
+          id: string
+          options: Json
+          question_text: string
+          subject: string
+          year: number
+        }
+        Insert: {
+          correct_option: string
+          created_at?: string | null
+          exam_type: Database["public"]["Enums"]["exam_type"]
+          explanation?: string | null
+          id?: string
+          options: Json
+          question_text: string
+          subject: string
+          year: number
+        }
+        Update: {
+          correct_option?: string
+          created_at?: string | null
+          exam_type?: Database["public"]["Enums"]["exam_type"]
+          explanation?: string | null
+          id?: string
+          options?: Json
+          question_text?: string
+          subject?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      subjects: {
+        Row: {
+          created_at: string | null
+          exam_type: Database["public"]["Enums"]["exam_type"]
+          icon: string | null
+          id: string
+          is_free: boolean | null
+          subject_name: string
+          time_limit_minutes: number
+          total_questions: number
+        }
+        Insert: {
+          created_at?: string | null
+          exam_type: Database["public"]["Enums"]["exam_type"]
+          icon?: string | null
+          id?: string
+          is_free?: boolean | null
+          subject_name: string
+          time_limit_minutes: number
+          total_questions: number
+        }
+        Update: {
+          created_at?: string | null
+          exam_type?: Database["public"]["Enums"]["exam_type"]
+          icon?: string | null
+          id?: string
+          is_free?: boolean | null
+          subject_name?: string
+          time_limit_minutes?: number
+          total_questions?: number
+        }
+        Relationships: []
+      }
+      word_explanations: {
+        Row: {
+          created_at: string | null
+          explanation: string
+          id: string
+          user_id: string | null
+          word: string
+        }
+        Insert: {
+          created_at?: string | null
+          explanation: string
+          id?: string
+          user_id?: string | null
+          word: string
+        }
+        Update: {
+          created_at?: string | null
+          explanation?: string
+          id?: string
+          user_id?: string | null
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_explanations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +269,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      exam_type: "WAEC" | "JAMB" | "NECO"
+      payment_method: "Paystack" | "Flutterwave"
+      payment_status: "pending" | "success" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +386,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      exam_type: ["WAEC", "JAMB", "NECO"],
+      payment_method: ["Paystack", "Flutterwave"],
+      payment_status: ["pending", "success", "failed"],
+    },
   },
 } as const

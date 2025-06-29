@@ -3,35 +3,71 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import ExamCard from '@/components/ExamCard';
-import { useExamData } from '@/hooks/useExamData';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Users, Trophy, TrendingUp, Filter } from 'lucide-react';
+import { BookOpen, Users, Trophy, TrendingUp, Filter, Crown } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { availableExams } = useExamData();
+  const { user } = useAuth();
+  const { subjects, subjectsLoading, profile, examAttempts } = useSupabaseData();
   const [selectedFilter, setSelectedFilter] = useState<string>('ALL');
 
   const handleStartExam = (examType: string, subject: string, year: number) => {
+    const selectedSubject = subjects.find(s => 
+      s.subject_name === subject && s.exam_type === examType
+    );
+
+    if (!user) {
+      toast.error('Please sign in to take exams');
+      navigate('/auth');
+      return;
+    }
+
+    if (selectedSubject && !selectedSubject.is_free && !profile?.is_premium) {
+      toast.error('This subject requires a premium subscription');
+      return;
+    }
+
     toast.success(`Starting ${examType} ${subject} exam...`);
     navigate(`/exam?type=${examType}&subject=${subject}&year=${year}`);
   };
 
-  const filteredExams = selectedFilter === 'ALL' 
-    ? availableExams 
-    : availableExams.filter(exam => exam.examType === selectedFilter);
+  const filteredSubjects = selectedFilter === 'ALL' 
+    ? subjects 
+    : subjects.filter(subject => subject.exam_type === selectedFilter);
+
+  // Calculate stats
+  const totalAttempts = examAttempts.length;
+  const averageScore = totalAttempts > 0 
+    ? Math.round(examAttempts.reduce((sum, attempt) => sum + attempt.score_percent, 0) / totalAttempts)
+    : 0;
+  const bestScore = totalAttempts > 0 
+    ? Math.max(...examAttempts.map(attempt => attempt.score_percent))
+    : 0;
 
   const stats = [
-    { icon: BookOpen, label: 'Available Exams', value: availableExams.length, color: 'bg-blue-500' },
-    { icon: Users, label: 'Students Practicing', value: '12.5K+', color: 'bg-green-500' },
-    { icon: Trophy, label: 'Success Rate', value: '89%', color: 'bg-yellow-500' },
-    { icon: TrendingUp, label: 'Average Score', value: '78%', color: 'bg-purple-500' }
+    { icon: BookOpen, label: 'Available Subjects', value: subjects.length, color: 'bg-blue-500' },
+    { icon: Trophy, label: 'Exams Taken', value: totalAttempts, color: 'bg-green-500' },
+    { icon: TrendingUp, label: 'Average Score', value: `${averageScore}%`, color: 'bg-yellow-500' },
+    { icon: Users, label: 'Best Score', value: `${bestScore}%`, color: 'bg-purple-500' }
   ];
 
   const examTypes = ['ALL', 'WAEC', 'JAMB', 'NECO'];
+
+  if (subjectsLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -45,14 +81,20 @@ const Index = () => {
         </p>
         <div className="flex flex-wrap justify-center gap-2">
           <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-            10,000+ Questions
+            Real Past Questions
           </Badge>
           <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-            Instant Feedback
+            AI-Powered Help
           </Badge>
           <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-            Offline Support
+            Progress Tracking
           </Badge>
+          {profile?.is_premium && (
+            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-100 border-yellow-300/30">
+              <Crown className="w-3 h-3 mr-1" />
+              Premium
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -105,23 +147,32 @@ const Index = () => {
 
       {/* Exam Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {filteredExams.map((exam, index) => (
-          <ExamCard
-            key={index}
-            examType={exam.examType}
-            subject={exam.subject}
-            year={exam.year}
-            questions={exam.questions.length}
-            duration={exam.duration}
-            onStart={() => handleStartExam(exam.examType, exam.subject, exam.year)}
-          />
+        {filteredSubjects.map((subject, index) => (
+          <div key={`${subject.id}-${index}`} className="relative">
+            <ExamCard
+              examType={subject.exam_type}
+              subject={subject.subject_name}
+              year={2023}
+              questions={subject.total_questions}
+              duration={subject.time_limit_minutes}
+              onStart={() => handleStartExam(subject.exam_type, subject.subject_name, 2023)}
+            />
+            {!subject.is_free && (
+              <div className="absolute top-2 right-2">
+                <Badge className="bg-yellow-500 text-yellow-900">
+                  <Crown className="w-3 h-3 mr-1" />
+                  Premium
+                </Badge>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
-      {filteredExams.length === 0 && (
+      {filteredSubjects.length === 0 && (
         <div className="text-center py-12">
           <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">No exams found</h3>
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">No subjects found</h3>
           <p className="text-gray-500">Try selecting a different filter</p>
         </div>
       )}
@@ -144,15 +195,15 @@ const Index = () => {
               <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Trophy className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-semibold mb-2">Instant Results</h3>
-              <p className="text-sm text-gray-600">Get immediate feedback with detailed explanations</p>
+              <h3 className="font-semibold mb-2">Track Progress</h3>
+              <p className="text-sm text-gray-600">Monitor your improvement with detailed analytics</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-semibold mb-2">Track Progress</h3>
-              <p className="text-sm text-gray-600">Monitor your improvement over time</p>
+              <h3 className="font-semibold mb-2">AI-Powered Help</h3>
+              <p className="text-sm text-gray-600">Get instant explanations with our AI word helper</p>
             </div>
           </div>
         </CardContent>
