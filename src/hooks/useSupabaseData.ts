@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,7 +54,7 @@ export const useSupabaseData = () => {
     }
   });
 
-  // Fetch user profile
+  // Fetch user profile (removing premium-related logic)
   const { data: profile } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {

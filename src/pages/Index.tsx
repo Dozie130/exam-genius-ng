@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -7,29 +6,20 @@ import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Users, Trophy, TrendingUp, Filter, Crown } from 'lucide-react';
+import { BookOpen, Users, Trophy, TrendingUp, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { subjects, subjectsLoading, profile, examAttempts } = useSupabaseData();
+  const { subjects, subjectsLoading, examAttempts } = useSupabaseData();
   const [selectedFilter, setSelectedFilter] = useState<string>('ALL');
 
   const handleStartExam = (examType: string, subject: string, year: number) => {
-    const selectedSubject = subjects.find(s => 
-      s.subject_name === subject && s.exam_type === examType
-    );
-
     if (!user) {
       toast.error('Please sign in to take exams');
       navigate('/auth');
-      return;
-    }
-
-    if (selectedSubject && !selectedSubject.is_free && !profile?.is_premium) {
-      toast.error('This subject requires a premium subscription');
       return;
     }
 
@@ -89,12 +79,9 @@ const Index = () => {
           <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
             Progress Tracking
           </Badge>
-          {profile?.is_premium && (
-            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-100 border-yellow-300/30">
-              <Crown className="w-3 h-3 mr-1" />
-              Premium
-            </Badge>
-          )}
+          <Badge variant="secondary" className="bg-green-500/20 text-green-100 border-green-300/30">
+            All Free
+          </Badge>
         </div>
       </div>
 
@@ -148,24 +135,15 @@ const Index = () => {
       {/* Exam Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {filteredSubjects.map((subject, index) => (
-          <div key={`${subject.id}-${index}`} className="relative">
-            <ExamCard
-              examType={subject.exam_type}
-              subject={subject.subject_name}
-              year={2023}
-              questions={subject.total_questions}
-              duration={subject.time_limit_minutes}
-              onStart={() => handleStartExam(subject.exam_type, subject.subject_name, 2023)}
-            />
-            {!subject.is_free && (
-              <div className="absolute top-2 right-2">
-                <Badge className="bg-yellow-500 text-yellow-900">
-                  <Crown className="w-3 h-3 mr-1" />
-                  Premium
-                </Badge>
-              </div>
-            )}
-          </div>
+          <ExamCard
+            key={`${subject.id}-${index}`}
+            examType={subject.exam_type}
+            subject={subject.subject_name}
+            year={2023}
+            questions={subject.total_questions}
+            duration={subject.time_limit_minutes}
+            onStart={() => handleStartExam(subject.exam_type, subject.subject_name, 2023)}
+          />
         ))}
       </div>
 
