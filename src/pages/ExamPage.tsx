@@ -6,6 +6,7 @@ import ResultsCard from '@/components/ResultsCard';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 
 interface Question {
   id: string;
@@ -27,64 +28,61 @@ const ExamPage = () => {
   const subject = searchParams.get('subject') || '';
   const year = parseInt(searchParams.get('year') || '2023');
   
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
   const [examStartTime] = useState(Date.now());
   const [questionStartTimes, setQuestionStartTimes] = useState<Record<number, number>>({});
 
-  useEffect(() => {
-    const fetchQuestions = async () => {
+  // Use React Query for caching and faster loading
+  const { data: questions = [], isLoading: loading, error } = useQuery({
+    queryKey: ['exam-questions', examType, subject, year],
+    queryFn: async () => {
       if (!examType || !subject) {
-        toast.error('Invalid exam parameters');
-        navigate('/');
-        return;
+        throw new Error('Invalid exam parameters');
       }
 
-      try {
-        const { data, error } = await supabase
-          .from('questions')
-          .select('*')
-          .eq('exam_type', examType)
-          .eq('subject', subject)
-          .eq('year', year)
-          .limit(40);
+      const { data, error } = await supabase
+        .from('questions')
+        .select('id, subject, exam_type, year, question_text, options, correct_option, explanation')
+        .eq('exam_type', examType)
+        .eq('subject', subject)
+        .eq('year', year)
+        .limit(40)
+        .order('created_at');
 
-        if (error) throw error;
+      if (error) throw error;
 
-        if (!data || data.length === 0) {
-          toast.error('No questions found for this exam');
-          navigate('/');
-          return;
-        }
-
-        // Transform the data to ensure options is properly typed
-        const transformedQuestions: Question[] = data.map(q => ({
-          id: q.id,
-          subject: q.subject,
-          exam_type: q.exam_type,
-          year: q.year,
-          question_text: q.question_text,
-          options: q.options as Record<string, string>,
-          correct_option: q.correct_option,
-          explanation: q.explanation || ''
-        }));
-
-        setQuestions(transformedQuestions);
-        setQuestionStartTimes({ 0: Date.now() });
-      } catch (error) {
-        console.error('Error fetching questions:', error);
-        toast.error('Failed to load exam questions');
-        navigate('/');
-      } finally {
-        setLoading(false);
+      if (!data || data.length === 0) {
+        throw new Error('No questions found for this exam');
       }
-    };
 
-    fetchQuestions();
-  }, [examType, subject, year, navigate]);
+      // Transform the data to ensure options is properly typed
+      return data.map(q => ({
+        id: q.id,
+        subject: q.subject,
+        exam_type: q.exam_type,
+        year: q.year,
+        question_text: q.question_text,
+        options: q.options as Record<string, string>,
+        correct_option: q.correct_option,
+        explanation: q.explanation || ''
+      })) as Question[];
+    },
+    enabled: !!(examType && subject),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    retry: 1
+  });
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      console.error('Error fetching questions:', error);
+      toast.error(error.message || 'Failed to load exam questions');
+      navigate('/');
+    }
+  }, [error, navigate]);
 
   // Record start time when question changes
   useEffect(() => {
@@ -193,7 +191,7 @@ const ExamPage = () => {
           score={results.scorePercent}
           totalQuestions={questions.length}
           correctAnswers={results.correctAnswers}
-          timeTaken={results.timeTakenMinutes * 60} // Convert back to seconds for display
+          timeTaken={results.timeTakenMinutes * 60}
           examType={examType}
           subject={subject}
           onRetake={handleRetake}
