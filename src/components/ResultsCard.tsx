@@ -4,6 +4,7 @@ import { Trophy, Target, Clock, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import ResultsReview from './ResultsReview';
 
 interface ResultsCardProps {
   score: number;
@@ -14,6 +15,15 @@ interface ResultsCardProps {
   subject: string;
   onRetake: () => void;
   onHome: () => void;
+  questionReviews?: Array<{
+    questionNumber: number;
+    questionText: string;
+    userAnswer: string;
+    correctAnswer: string;
+    explanation: string;
+    options: Record<string, string>;
+    isCorrect: boolean;
+  }>;
 }
 
 const ResultsCard = ({
@@ -24,7 +34,8 @@ const ResultsCard = ({
   examType,
   subject,
   onRetake,
-  onHome
+  onHome,
+  questionReviews = []
 }: ResultsCardProps) => {
   const percentage = Math.round((correctAnswers / totalQuestions) * 100);
   const grade = percentage >= 80 ? 'Excellent' : percentage >= 70 ? 'Very Good' : percentage >= 60 ? 'Good' : percentage >= 50 ? 'Fair' : 'Needs Improvement';
@@ -107,6 +118,15 @@ const ResultsCard = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Question Reviews */}
+      {questionReviews.length > 0 && (
+        <ResultsReview 
+          reviews={questionReviews}
+          totalQuestions={totalQuestions}
+          correctAnswers={correctAnswers}
+        />
+      )}
       
       {/* Performance Tips */}
       <Card className="shadow-lg border-0">

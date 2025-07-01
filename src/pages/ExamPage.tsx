@@ -158,6 +158,23 @@ const ExamPage = () => {
     };
   };
 
+  const generateQuestionReviews = () => {
+    return questions.map((question, index) => {
+      const userAnswer = answers[question.id] || '';
+      const isCorrect = userAnswer === question.correct_option;
+      
+      return {
+        questionNumber: index + 1,
+        questionText: question.question_text,
+        userAnswer,
+        correctAnswer: question.correct_option,
+        explanation: question.explanation || 'No explanation available.',
+        options: question.options,
+        isCorrect
+      };
+    });
+  };
+
   const handleRetake = () => {
     setCurrentQuestionIndex(0);
     setAnswers({});
@@ -172,6 +189,7 @@ const ExamPage = () => {
 
   if (showResults) {
     const results = calculateResults();
+    const questionReviews = generateQuestionReviews();
     
     // Save exam attempt to database
     if (user) {
@@ -196,6 +214,7 @@ const ExamPage = () => {
           subject={subject}
           onRetake={handleRetake}
           onHome={handleHome}
+          questionReviews={questionReviews}
         />
       </Layout>
     );
