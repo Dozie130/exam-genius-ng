@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BookOpen, User, LogOut } from 'lucide-react';
+import { BookOpen, User, LogOut, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -20,19 +20,27 @@ const Layout = ({ children, title }: LayoutProps) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <header className="bg-white shadow-sm border-b border-blue-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div 
+              className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors group"
+              onClick={handleRefresh}
+            >
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-green-600 rounded-lg flex items-center justify-center">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">SmartExam NG</h1>
+                <h1 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">SmartExam NG</h1>
                 <p className="text-sm text-gray-600">Excel in Your Exams</p>
               </div>
+              <RefreshCw className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors opacity-0 group-hover:opacity-100" />
             </div>
             
             <div className="flex items-center space-x-4">
