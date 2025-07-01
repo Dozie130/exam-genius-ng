@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import ExamCard from '@/components/ExamCard';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,34 +29,37 @@ const Index = () => {
     navigate(`/exam?type=${examType}&subject=${subject}&year=${year}`);
   };
 
-  const filteredSubjects = selectedFilter === 'ALL' 
-    ? subjects 
-    : subjects.filter(subject => subject.exam_type === selectedFilter);
+  // Memoize filtered subjects for better performance
+  const filteredSubjects = useMemo(() => {
+    return selectedFilter === 'ALL' 
+      ? subjects 
+      : subjects.filter(subject => subject.exam_type === selectedFilter);
+  }, [subjects, selectedFilter]);
 
-  // Calculate stats
-  const totalAttempts = examAttempts.length;
-  const averageScore = totalAttempts > 0 
-    ? Math.round(examAttempts.reduce((sum, attempt) => sum + attempt.score_percent, 0) / totalAttempts)
-    : 0;
-  const bestScore = totalAttempts > 0 
-    ? Math.max(...examAttempts.map(attempt => attempt.score_percent))
-    : 0;
+  // Memoize stats calculation
+  const stats = useMemo(() => {
+    const totalAttempts = examAttempts.length;
+    const averageScore = totalAttempts > 0 
+      ? Math.round(examAttempts.reduce((sum, attempt) => sum + attempt.score_percent, 0) / totalAttempts)
+      : 0;
+    const bestScore = totalAttempts > 0 
+      ? Math.max(...examAttempts.map(attempt => attempt.score_percent))
+      : 0;
 
-  const stats = [
-    { icon: BookOpen, label: 'Available Subjects', value: subjects.length, color: 'bg-blue-500' },
-    { icon: Trophy, label: 'Exams Taken', value: totalAttempts, color: 'bg-green-500' },
-    { icon: TrendingUp, label: 'Average Score', value: `${averageScore}%`, color: 'bg-yellow-500' },
-    { icon: Users, label: 'Best Score', value: `${bestScore}%`, color: 'bg-purple-500' }
-  ];
+    return [
+      { icon: BookOpen, label: 'Available Subjects', value: subjects.length, color: 'bg-blue-500' },
+      { icon: Trophy, label: 'Exams Taken', value: totalAttempts, color: 'bg-green-500' },
+      { icon: TrendingUp, label: 'Average Score', value: `${averageScore}%`, color: 'bg-yellow-500' },
+      { icon: Users, label: 'Best Score', value: `${bestScore}%`, color: 'bg-purple-500' }
+    ];
+  }, [subjects.length, examAttempts]);
 
   const examTypes = ['ALL', 'WAEC', 'JAMB', 'NECO'];
 
   if (subjectsLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
+        <LoadingSpinner message="Loading subjects..." />
       </Layout>
     );
   }
@@ -62,7 +67,7 @@ const Index = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <div className="text-center mb-8 py-8 px-4 bg-gradient-to-r from-blue-600 to-green-600 rounded-2xl text-white shadow-xl">
+      <div className="text-center mb-8 py-8 px-4 bg-gradient-to-r from-blue-600 to-green-600 rounded-2xl text-white shadow-xl animate-fade-in">
         <h1 className="text-3xl md:text-4xl font-bold mb-4">
           Master Your Nigerian Exams
         </h1>
@@ -70,16 +75,16 @@ const Index = () => {
           Practice with authentic past questions from WAEC, JAMB, and NECO
         </p>
         <div className="flex flex-wrap justify-center gap-2">
-          <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+          <Badge variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30 transition-colors">
             Real Past Questions
           </Badge>
-          <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+          <Badge variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30 transition-colors">
             AI-Powered Help
           </Badge>
-          <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+          <Badge variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30 transition-colors">
             Progress Tracking
           </Badge>
-          <Badge variant="secondary" className="bg-green-500/20 text-green-100 border-green-300/30">
+          <Badge variant="secondary" className="bg-green-500/20 text-green-100 border-green-300/30 hover:bg-green-500/30 transition-colors">
             All Free
           </Badge>
         </div>
@@ -88,9 +93,9 @@ const Index = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {stats.map((stat, index) => (
-          <Card key={index} className="text-center shadow-md border-0">
+          <Card key={index} className="text-center shadow-md border-0 hover:shadow-lg transition-shadow duration-200 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
             <CardContent className="pt-6">
-              <div className={`w-12 h-12 ${stat.color} rounded-full flex items-center justify-center mx-auto mb-3`}>
+              <div className={`w-12 h-12 ${stat.color} rounded-full flex items-center justify-center mx-auto mb-3 shadow-md`}>
                 <stat.icon className="w-6 h-6 text-white" />
               </div>
               <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</div>
@@ -101,7 +106,7 @@ const Index = () => {
       </div>
 
       {/* Filter Section */}
-      <Card className="mb-6 shadow-md border-0">
+      <Card className="mb-6 shadow-md border-0 animate-fade-in">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -123,7 +128,11 @@ const Index = () => {
                 variant={selectedFilter === type ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedFilter(type)}
-                className={selectedFilter === type ? "bg-gradient-to-r from-blue-600 to-green-600 text-white" : ""}
+                className={`transition-all duration-200 ${
+                  selectedFilter === type 
+                    ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md" 
+                    : "hover:shadow-md"
+                }`}
               >
                 {type}
               </Button>
@@ -135,20 +144,21 @@ const Index = () => {
       {/* Exam Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {filteredSubjects.map((subject, index) => (
-          <ExamCard
-            key={`${subject.id}-${index}`}
-            examType={subject.exam_type}
-            subject={subject.subject_name}
-            year={2023}
-            questions={subject.total_questions}
-            duration={subject.time_limit_minutes}
-            onStart={() => handleStartExam(subject.exam_type, subject.subject_name, 2023)}
-          />
+          <div key={`${subject.id}-${index}`} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+            <ExamCard
+              examType={subject.exam_type}
+              subject={subject.subject_name}
+              year={2023}
+              questions={subject.total_questions}
+              duration={subject.time_limit_minutes}
+              onStart={() => handleStartExam(subject.exam_type, subject.subject_name, 2023)}
+            />
+          </div>
         ))}
       </div>
 
       {filteredSubjects.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-12 animate-fade-in">
           <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-600 mb-2">No subjects found</h3>
           <p className="text-gray-500">Try selecting a different filter</p>
@@ -156,28 +166,28 @@ const Index = () => {
       )}
 
       {/* Features Section */}
-      <Card className="mt-8 shadow-lg border-0 bg-gradient-to-br from-gray-50 to-blue-50">
+      <Card className="mt-8 shadow-lg border-0 bg-gradient-to-br from-gray-50 to-blue-50 animate-fade-in">
         <CardHeader>
           <CardTitle className="text-center text-2xl">Why Choose SmartExam NG?</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="text-center hover:transform hover:scale-105 transition-transform duration-200">
+              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-semibold mb-2">Authentic Questions</h3>
               <p className="text-sm text-gray-600">Practice with real past questions from official exam bodies</p>
             </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="text-center hover:transform hover:scale-105 transition-transform duration-200">
+              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
                 <Trophy className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-semibold mb-2">Track Progress</h3>
               <p className="text-sm text-gray-600">Monitor your improvement with detailed analytics</p>
             </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="text-center hover:transform hover:scale-105 transition-transform duration-200">
+              <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-semibold mb-2">AI-Powered Help</h3>

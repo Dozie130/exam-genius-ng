@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,21 +41,23 @@ export const useSupabaseData = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch subjects
+  // Fetch subjects with optimized caching
   const { data: subjects = [], isLoading: subjectsLoading } = useQuery({
     queryKey: ['subjects'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('subjects')
-        .select('*')
+        .select('id, subject_name, exam_type, time_limit_minutes, is_free, total_questions, icon')
         .order('subject_name');
       
       if (error) throw error;
       return data as Subject[];
-    }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes - subjects don't change often
+    gcTime: 30 * 60 * 1000, // 30 minutes
   });
 
-  // Fetch user profile (removing premium-related logic)
+  // Fetch user profile with optimized caching
   const { data: profile } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
@@ -69,10 +72,11 @@ export const useSupabaseData = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch exam attempts
+  // Fetch exam attempts with optimized caching
   const { data: examAttempts = [], isLoading: attemptsLoading } = useQuery({
     queryKey: ['exam-attempts', user?.id],
     queryFn: async () => {
@@ -80,17 +84,19 @@ export const useSupabaseData = () => {
       
       const { data, error } = await supabase
         .from('exam_attempts')
-        .select('*')
+        .select('id, subject, exam_type, questions_answered, correct_answers, score_percent, time_taken_minutes, completed_at')
         .eq('user_id', user.id)
-        .order('completed_at', { ascending: false });
+        .order('completed_at', { ascending: false })
+        .limit(50); // Limit to recent attempts for better performance
       
       if (error) throw error;
       return data as ExamAttempt[];
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
-  // Fetch bookmarked questions
+  // Fetch bookmarked questions with optimized caching
   const { data: bookmarkedQuestions = [] } = useQuery({
     queryKey: ['bookmarked-questions', user?.id],
     queryFn: async () => {
@@ -111,15 +117,17 @@ export const useSupabaseData = () => {
             explanation
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .limit(100); // Limit for performance
       
       if (error) throw error;
       return data.map(item => item.questions).filter(Boolean) as Question[];
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Save exam attempt
+  // Save exam attempt with optimistic updates
   const saveExamAttempt = useMutation({
     mutationFn: async (attempt: Omit<ExamAttempt, 'id' | 'completed_at'>) => {
       if (!user) throw new Error('User not authenticated');
@@ -141,18 +149,38 @@ export const useSupabaseData = () => {
       if (error) throw error;
       return data;
     },
+    onMutate: async (newAttempt) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['exam-attempts', user?.id] });
+      
+      const previousAttempts = queryClient.getQueryData(['exam-attempts', user?.id]);
+      
+      queryClient.setQueryData(['exam-attempts', user?.id], (old: ExamAttempt[] = []) => [
+        {
+          ...newAttempt,
+          id: 'temp-' + Date.now(),
+          completed_at: new Date().toISOString()
+        } as ExamAttempt,
+        ...old
+      ]);
+      
+      return { previousAttempts };
+    },
+    onError: (err, newAttempt, context) => {
+      queryClient.setQueryData(['exam-attempts', user?.id], context?.previousAttempts);
+      toast.error('Failed to save exam results');
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exam-attempts'] });
       toast.success('Exam results saved!');
     }
   });
 
-  // Toggle bookmark
+  // Toggle bookmark with optimistic updates
   const toggleBookmark = useMutation({
     mutationFn: async (questionId: string) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Check if already bookmarked
       const { data: existing } = await supabase
         .from('bookmarked_questions')
         .select('id')
@@ -161,7 +189,6 @@ export const useSupabaseData = () => {
         .single();
 
       if (existing) {
-        // Remove bookmark
         const { error } = await supabase
           .from('bookmarked_questions')
           .delete()
@@ -170,7 +197,6 @@ export const useSupabaseData = () => {
         if (error) throw error;
         return { action: 'removed' };
       } else {
-        // Add bookmark
         const { error } = await supabase
           .from('bookmarked_questions')
           .insert({
