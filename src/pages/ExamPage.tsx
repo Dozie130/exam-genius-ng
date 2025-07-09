@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import QuestionCard from '@/components/QuestionCard';
+import EnhancedQuestionCard from '@/components/EnhancedQuestionCard';
 import ResultsCard from '@/components/ResultsCard';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +28,9 @@ const ExamPage = () => {
   const subject = searchParams.get('subject') || '';
   const year = parseInt(searchParams.get('year') || '2023');
   
+  // Get user profile to check premium status
+  const { profile } = useSupabaseData();
+  
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
@@ -48,7 +51,7 @@ const ExamPage = () => {
         .eq('exam_type', examType)
         .eq('subject', subject)
         .eq('year', year)
-        .limit(40)
+        .limit(profile?.is_paid ? 40 : 5) // Limit to 5 for free users
         .order('created_at');
 
       if (error) throw error;
@@ -230,9 +233,12 @@ const ExamPage = () => {
     explanation: currentQuestion.explanation
   };
 
+  // Check if this is the last free question for non-premium users
+  const isLastFreeQuestion = !profile?.is_paid && currentQuestionIndex >= 4; // 0-indexed, so 4 = 5th question
+
   return (
     <Layout title={`${examType} ${subject} ${year}`}>
-      <QuestionCard
+      <EnhancedQuestionCard
         question={formattedQuestion}
         currentQuestion={currentQuestionIndex + 1}
         totalQuestions={questions.length}
@@ -242,6 +248,7 @@ const ExamPage = () => {
         onPrevious={handlePrevious}
         showAnswer={false}
         onTimeUp={handleTimeUp}
+        isLastFreeQuestion={isLastFreeQuestion}
       />
     </Layout>
   );

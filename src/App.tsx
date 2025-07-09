@@ -36,6 +36,9 @@ const queryClient = new QueryClient({
   },
 });
 
+// Lazy load ProfilePage
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+
 const App = () => (
   <StrictMode>
     <ErrorBoundary>
@@ -56,6 +59,7 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/exam" element={<ExamPage />} />
                   <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

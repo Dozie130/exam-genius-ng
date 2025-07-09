@@ -72,6 +72,13 @@ const Layout = memo(({ children, title }: LayoutProps) => {
                       <span className="truncate">{user.email}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
+                      onClick={() => navigate('/profile')} 
+                      className="hover:bg-blue-50 focus:bg-blue-50 text-sm"
+                    >
+                      <User className="w-4 h-4 mr-2 flex-shrink-0" />
+                      My Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
                       onClick={signOut} 
                       className="text-red-600 hover:bg-red-50 focus:bg-red-50 text-sm"
                     >

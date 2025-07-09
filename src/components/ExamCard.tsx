@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Clock, Users, BookOpen, ChevronRight } from 'lucide-react';
+import { Clock, BookOpen, ChevronRight, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -11,9 +11,10 @@ interface ExamCardProps {
   questions: number;
   duration: number;
   onStart: () => void;
+  isPremium?: boolean;
 }
 
-const ExamCard = ({ examType, subject, year, questions, duration, onStart }: ExamCardProps) => {
+const ExamCard = ({ examType, subject, year, questions, duration, onStart, isPremium = false }: ExamCardProps) => {
   const getExamColor = (type: string) => {
     switch (type) {
       case 'WAEC':
@@ -28,13 +29,18 @@ const ExamCard = ({ examType, subject, year, questions, duration, onStart }: Exa
   };
 
   return (
-    <Card className="hover:shadow-lg transition-all duration-300 border-0 shadow-md">
+    <Card className="hover:shadow-lg transition-all duration-300 border-0 shadow-md hover:scale-105">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className={`px-3 py-1 rounded-full text-white text-sm font-medium bg-gradient-to-r ${getExamColor(examType)}`}>
             {examType}
           </div>
-          <span className="text-sm text-gray-500">{year}</span>
+          <div className="flex items-center gap-2">
+            {isPremium && (
+              <Crown className="w-4 h-4 text-yellow-500" />
+            )}
+            <span className="text-sm text-gray-500">{year}</span>
+          </div>
         </div>
         <CardTitle className="text-lg font-bold text-gray-900">{subject}</CardTitle>
         <CardDescription className="text-gray-600">
@@ -46,7 +52,8 @@ const ExamCard = ({ examType, subject, year, questions, duration, onStart }: Exa
         <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
           <div className="flex items-center space-x-1">
             <BookOpen className="w-4 h-4" />
-            <span>{questions} questions</span>
+            <span>{isPremium ? questions : 5} questions</span>
+            {!isPremium && <span className="text-xs text-orange-600">(Free trial)</span>}
           </div>
           <div className="flex items-center space-x-1">
             <Clock className="w-4 h-4" />

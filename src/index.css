@@ -113,6 +113,10 @@ All colors MUST be HSL.
     animation: bounceIn 0.6s ease-out forwards;
   }
 
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
   .will-change-transform {
     will-change: transform;
   }
@@ -202,6 +206,15 @@ All colors MUST be HSL.
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
   }
 }
 

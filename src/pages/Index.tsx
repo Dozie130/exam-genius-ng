@@ -11,11 +11,12 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Users, Trophy, TrendingUp, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import PremiumUpgradeButton from '@/components/PremiumUpgradeButton';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { subjects, subjectsLoading, examAttempts } = useSupabaseData();
+  const { subjects, subjectsLoading, examAttempts, profile } = useSupabaseData();
   const [selectedFilter, setSelectedFilter] = useState<string>('ALL');
 
   const handleStartExam = (examType: string, subject: string, year: number) => {
@@ -85,7 +86,7 @@ const Index = () => {
             Progress Tracking
           </Badge>
           <Badge variant="secondary" className="bg-green-500/20 text-green-100 border-green-300/30 hover:bg-green-500/30 transition-colors text-xs sm:text-sm font-semibold">
-            All Free
+            {profile?.is_paid ? 'Premium Access' : 'Free Trial'}
           </Badge>
         </div>
       </div>
@@ -152,6 +153,7 @@ const Index = () => {
               questions={subject.total_questions}
               duration={subject.time_limit_minutes}
               onStart={() => handleStartExam(subject.exam_type, subject.subject_name, 2023)}
+              isPremium={profile?.is_paid || false}
             />
           </div>
         ))}
@@ -196,6 +198,9 @@ const Index = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Floating Premium Upgrade Button */}
+      <PremiumUpgradeButton floating />
     </Layout>
   );
 };

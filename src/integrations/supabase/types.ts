@@ -135,31 +135,40 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string | null
+          flutterwave_transaction_id: string | null
           full_name: string
           id: string
-          is_premium: boolean | null
+          is_paid: boolean | null
           last_login: string | null
+          payment_status: string | null
           phone: string | null
+          premium_expires_at: string | null
           registered_date: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          flutterwave_transaction_id?: string | null
           full_name: string
           id: string
-          is_premium?: boolean | null
+          is_paid?: boolean | null
           last_login?: string | null
+          payment_status?: string | null
           phone?: string | null
+          premium_expires_at?: string | null
           registered_date?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          flutterwave_transaction_id?: string | null
           full_name?: string
           id?: string
-          is_premium?: boolean | null
+          is_paid?: boolean | null
           last_login?: string | null
+          payment_status?: string | null
           phone?: string | null
+          premium_expires_at?: string | null
           registered_date?: string | null
           updated_at?: string | null
         }
