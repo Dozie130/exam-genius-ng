@@ -133,6 +133,36 @@ All colors MUST be HSL.
     loading: lazy;
     decoding: async;
   }
+
+  /* Touch optimizations */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Safe area support for mobile devices */
+  .safe-area-inset {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Content visibility for performance */
+  .content-visibility-auto {
+    content-visibility: auto;
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in,
+    .animate-slide-up,
+    .animate-bounce-in {
+      animation: none;
+    }
+    
+    * {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
 }
 
 @keyframes fadeIn {
